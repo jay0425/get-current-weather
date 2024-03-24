@@ -3,6 +3,7 @@ import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import WeatherBox from './component/WeatherBox';
 import WeatherButton from './component/WeatherButton';
+import ClipLoader from 'react-spinners/ClipLoader';
 
 /*
 
@@ -16,7 +17,12 @@ import WeatherButton from './component/WeatherButton';
 */
 
 function App() {
+  const APIkey = `cc074568a716e634daab72e2694d940c`;
   const [weather, setWeather] = useState(null);
+  const [city, setCity] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const cities = ['paris', 'new york', 'tokyo', 'seoul '];
+  const [apiError, setAPIError] = useState('');
 
   const getCurrentLocation = () => {
     navigator.geolocation.getCurrentPosition((position) => {
@@ -27,23 +33,66 @@ function App() {
   };
 
   const getWeatherByCurrentLocation = async (lat, lon) => {
-    const APIkey = `cc074568a716e634daab72e2694d940c`;
-    let url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${APIkey}&units=metric`;
-    let response = await fetch(url);
-    let data = await response.json();
-    setWeather(data);
+    try {
+      let url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${APIkey}&units=metric`;
+      setLoading(true);
+      let response = await fetch(url);
+      let data = await response.json();
+      setWeather(data);
+      setLoading(false);
+    } catch (error) {
+      setAPIError(error.message);
+      setLoading(false);
+    }
+  };
+
+  const getWeatherByCity = async () => {
+    try {
+      let url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${APIkey}&units=metric`;
+      setLoading(true);
+      let response = await fetch(url);
+      let data = await response.json();
+      setWeather(data);
+      setLoading(false);
+    } catch (error) {
+      setAPIError(error.message);
+      setLoading(false);
+    }
+  };
+
+  const handleCityChange = (city) => {
+    if (city === 'current') {
+      setCity(null);
+    } else {
+      setCity(city);
+    }
   };
 
   useEffect(() => {
-    getCurrentLocation();
-  }, []);
+    if (city === null) {
+      getCurrentLocation();
+    } else {
+      getWeatherByCity();
+    }
+  }, [city]);
+
   return (
-    <div>
-      <div className="container">
-        <WeatherBox weather={weather} />
-        <WeatherButton />
+    <>
+      <div className="container vh-100">
+        {loading ? (
+          <div className="w-100 vh-100 d-flex justify-content-center align-items-center">
+            <ClipLoader color="#f86c6b" size={150} loading={loading} />
+          </div>
+        ) : !apiError ? (
+          <div class="main-container">
+            <WeatherBox weather={weather} />
+            <WeatherButton cities={cities} handleCityChange={handleCityChange} selectedCity={city} />
+          </div>
+        ) : (
+          apiError
+        )}
       </div>
-    </div>
+    </>
   );
 }
 
